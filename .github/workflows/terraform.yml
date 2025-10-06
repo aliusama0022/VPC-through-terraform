@@ -1,45 +1,61 @@
-name: Deploy VPC with Terraform
+name: Terraform CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
+    branches:
+      - main
 
 jobs:
   terraform:
+    name: "Terraform Plan and Apply"
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
-      id-token: write  # For OIDC
+      id-token: write
 
     env:
-      AWS_REGION: us-east-1
+      AWS_REGION: eu-north-1  # <-- change if your region differs
 
     steps:
+      # 1️⃣ Checkout your repository
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.8.0
+          terraform_version: 1.9.5  # Or your preferred version
 
-      - name: Configure AWS credentials
+      # 3️⃣ Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::123456789012:role/github-terraform-role
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # 4️⃣ Initialize Terraform
       - name: Terraform Init
-        working-directory: terraform
-        run: terraform init
+        run: terraform -chdir=terraform init
 
+      # 5️⃣ Validate syntax
+      - name: Terraform Validate
+        run: terraform -chdir=terraform validate
+
+      # 6️⃣ Check formatting
+      - name: Terraform Format Check
+        run: terraform -chdir=terraform fmt -check
+
+      # 7️⃣ Generate execution plan
       - name: Terraform Plan
-        working-directory: terraform
-        run: terraform plan -out=tfplan
+        run: terraform -chdir=terraform plan -out=tfplan
 
+      # 8️⃣ Apply (only on push to main)
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
-        working-directory: terraform
-        run: terraform apply -auto-approve tfplan
-        
+        run: terraform -chdir=terraform apply -auto-approve
