@@ -1,0 +1,17 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.crash
+*.log
+*.backup
+.terraform/
+.terraform.lock.hcl
+
+# Local environment
+*.env
+*.tfvars
+*.tfvars.json
+
+# macOS and Windows files
+.DS_Store
+Thumbs.db
